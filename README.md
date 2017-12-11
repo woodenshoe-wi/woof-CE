@@ -27,7 +27,7 @@ FAIL: raspberrypi-bootloader-nokernel
 ...
 ```
 
-or if you skip the check in 0setup, 
+or if you skip the check in 0setup,  
 after running 2createpackages ERROR-2CREATEPACKAGES will contain
 
 ```
