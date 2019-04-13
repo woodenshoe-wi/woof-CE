@@ -358,7 +358,7 @@ export MAIN_DIALOG="
         <text><label>You must have previously downloaded all the packages, see 'Download pkgs' tab. Now, they need to be processed into a cut-down and Puppy-compatible format. The resulting packages are created in directory 'packages-${DISTRO_FILE_PREFIX}'</label></text>
       </hbox>
       <hbox>
-        <text><label>'ALL_PACKAGES' means all chosen packages (see 'Choose pkgs' tab) are processed, directory 'packages-${DISTRO_FILE_PREFIX}' is wiped and all packages re-created. 'CHANGED_ONLY' will automatically process only packages that have changed or added since last time 2createpackages was run. Or, if only one package has been added or modified in the 'Choose pkgs' tab, then it can be explicitly selected here to process just that one:</label></text>
+        <text><label>'ALL_PACKAGES' means all chosen packages (see 'Choose pkgs' tab) are processed, directory 'packages-${DISTRO_FILE_PREFIX}' is wiped and all packages re-created. Or, if only one package has been added or modified in the 'Choose pkgs' tab, then it can be explicitly selected here to process just that one:</label></text>
         <combobox><variable>CHOICE_CREATEPACKAGES</variable>${ITEMS_CG}</combobox>
       </hbox>
       <hbox>
