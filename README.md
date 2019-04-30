@@ -4,11 +4,12 @@
 This is woodenshoe-wi's fork of the
 https://github.com/puppylinux-woof-CE/woof-CE repo.  Please do not base any
 commits off this branch or issue any pull requests here, there are commits in
-this branch that won't be included upstream.
+this branch (this readme) that won't be included upstream.
 
 The raspbian-build branch is based off of puppylinux-woof-CE/woof-CE testing,
 and contains all of the commits from my most recent successful Raspbian stretch
-based build.
+based build.  It is probably out of date, and you should consider using
+puppylinux-woof-CE/woof-CE instead.
 
 This build does **NOT** create an image file.  The files in the zip file
 produced need to be placed on a FAT formatted SD card.
