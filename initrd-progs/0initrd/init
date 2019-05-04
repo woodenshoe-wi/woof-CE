@@ -1057,19 +1057,9 @@ find_onepupdrv "$A_PART" "$A_BP_FN" "$A_DEF_FN" "a"
 #moved up here to ensure config files are available
 [ "$SAVEPART" ] && ensure_save_mounted
 
-#bring back Underdog Linux...
-if [ ! "$UNDERDOG" ] ; then
-  [ -s "${SAVE_MP}${PSUBDIR}/underdog.lnx" ] && UNDERDOG="`cat ${SAVE_MP}${PSUBDIR}/underdog.lnx`"
-fi
-[ "$UNDERDOG" ] && { decode_id "$UNDERDOG"; UNDERDOG="$ONE_PART"; }
-if [ "$UNDERDOG" ];then #boot parameter
- ensure_mounted "$UNDERDOG" "/pup_ud"
- if [ "$ONE_MP" ];then
-  mount -o remount,append:${ONE_MP}=rr /pup_new
-  #if [ $? -eq 0 ];then
-   #do any necessary underdog fiddles
-  #fi
- fi
+# underdog
+if [ -f /sbin/setup_underdog ] ; then #calls decode_id, ensure_mounted
+  . /sbin/setup_underdog #creates /pup_ud
 fi
 
 #support initmodules.txt
