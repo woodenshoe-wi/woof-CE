@@ -40,24 +40,44 @@ NEWBACKENDON="$BACKENDON"
 NEWPOWERTIMEOUT=$POWERTIMEOUT
 
 if [ "$ROX_DESKTOP" ] ; then
+	. /usr/local/pup_event/frontend_rox_funcs
 	[ "$ICONDESK" != "true" -a "$ICONDESK" != "false" ] && ICONDESK="true"
 	[ "$ICONPARTITIONS" != "true" -a "$ICONPARTITIONS" != "false" ] && ICONPARTITIONS="true"
 	[ "$LABELPARTITIONS" != "true" -a "$LABELPARTITIONS" != "false" ] && LABELPARTITIONS="true" 
 	case $ICON_PLACE_ORIENTATION in
-		bottom|top|right|left) ok=1 ;;
-		*) ICON_PLACE_ORIENTATION="bottom" ;;
+		top) ICON_PLACE_ORIENTATION="top-left" ;;
+		right) ICON_PLACE_ORIENTATION="right-top" ;;
+		left) ICON_PLACE_ORIENTATION="left-top" ;;
+
+		bottom-left|bottom-right| \
+		top-left|top-right| \
+		right-top|right-bottom| \
+		left-top|left-bottom)
+			ok=1
+			;;
+
+		*) ICON_PLACE_ORIENTATION="bottom-left" ;;
 	esac
 	[ ! "$ICON_PLACE_EDGE_GAP" ] && ICON_PLACE_EDGE_GAP=80
-	[ ! "$ICON_PLACE_START_GAP" ] && ICON_PLACE_START_GAP=32
-	[ ! "$ICON_PLACE_SPACING" ] && ICON_PLACE_SPACING=64
+	#[ ! "$ICON_PLACE_START_GAP" ] && ICON_PLACE_START_GAP=32
+	ROX_MARGIN_TOP=$(rox_get_option pinboard_top_margin)
+	ROX_MARGIN_BOTTOM=$(rox_get_option pinboard_bottom_margin)
+	ROX_MARGIN_LEFT=$(rox_get_option pinboard_left_margin)
+	ROX_MARGIN_RIGHT=$(rox_get_option pinboard_right_margin)
+	ICON_PLACE_SPACING_X=$(rox_get_option pinboard_search_step_x)
+	ICON_PLACE_SPACING_Y=$(rox_get_option pinboard_search_step_y)
 	#-
 	NEWICONDESK="$ICONDESK"
 	NEWICONPARTITIONS="$ICONPARTITIONS"
 	NEWLABELPARTITIONS="$LABELPARTITIONS"
 	NEWICON_PLACE_ORIENTATION="$ICON_PLACE_ORIENTATION"
 	NEWICON_PLACE_EDGE_GAP="$ICON_PLACE_EDGE_GAP"
-	NEWICON_PLACE_START_GAP="$ICON_PLACE_START_GAP"
-	NEWICON_PLACE_SPACING="$ICON_PLACE_SPACING"
+	NEWROX_MARGIN_TOP="$ROX_MARGIN_TOP"
+	NEWROX_MARGIN_BOTTOM="$ROX_MARGIN_BOTTOM"
+	NEWROX_MARGIN_LEFT="$ROX_MARGIN_LEFT"
+	NEWROX_MARGIN_RIGHT="$ROX_MARGIN_RIGHT"
+	NEWICON_PLACE_SPACING_X="$ICON_PLACE_SPACING_X"
+	NEWICON_PLACE_SPACING_Y="$ICON_PLACE_SPACING_Y"
 fi
 
 #disable RAM save interval and floppy icon if logical
@@ -105,13 +125,21 @@ else
                   <action>if true enable:NEWICONPARTITIONS</action>
                   <action>if true enable:NEWICON_PLACE_ORIENTATION</action>
                   <action>if true enable:NEWICON_PLACE_EDGE_GAP</action>
-                  <action>if true enable:NEWICON_PLACE_START_GAP</action>
-                  <action>if true enable:NEWICON_PLACE_SPACING</action>
+                  <action>if true enable:NEWROX_MARGIN_TOP</action>
+                  <action>if true enable:NEWROX_MARGIN_BOTTOM</action>
+                  <action>if true enable:NEWROX_MARGIN_LEFT</action>
+                  <action>if true enable:NEWROX_MARGIN_RIGHT</action>
+                  <action>if true enable:NEWICON_PLACE_SPACING_X</action>
+                  <action>if true enable:NEWICON_PLACE_SPACING_Y</action>
                   <action>if false disable:NEWICONPARTITIONS</action>
                   <action>if false disable:NEWICON_PLACE_ORIENTATION</action>
                   <action>if false disable:NEWICON_PLACE_EDGE_GAP</action>
-                  <action>if false disable:NEWICON_PLACE_START_GAP</action>
-                  <action>if false disable:NEWICON_PLACE_SPACING</action>
+                  <action>if false disable:NEWROX_MARGIN_TOP</action>
+                  <action>if false disable:NEWROX_MARGIN_BOTTOM</action>
+                  <action>if false disable:NEWROX_MARGIN_LEFT</action>
+                  <action>if false disable:NEWROX_MARGIN_RIGHT</action>
+                  <action>if false disable:NEWICON_PLACE_SPACING_X</action>
+                  <action>if false disable:NEWICON_PLACE_SPACING_Y</action>
                   <action condition="sensitive_is_true(NEWICONPARTITIONS)">enable:NEWLABELPARTITIONS</action>
 			      <action condition="sensitive_is_false(NEWICONPARTITIONS)">disable:NEWLABELPARTITIONS</action>
                   <action condition="active_is_false(NEWICONPARTITIONS)">disable:NEWLABELPARTITIONS</action>
@@ -144,19 +172,52 @@ else
                   <comboboxtext>
                     <default>'${ICON_PLACE_ORIENTATION}'</default>
                     <variable>NEWICON_PLACE_ORIENTATION</variable>
-                    <item>top</item>
-                    <item>bottom</item>
-                    <item>left</item>
-                    <item>right</item>
+                    <item>top-left</item>
+                    <item>top-right</item>
+                    <item>bottom-left</item>
+                    <item>bottom-right</item>
+                    <item>left-top</item>
+                    <item>left-bottom</item>
+                    <item>right-top</item>
+                    <item>right-bottom</item>
                   </comboboxtext>
                 </hbox>
-                <hbox>
-                  <text xalign="0"><label>'$(gettext 'Start gap: ')'</label></text>
-                  <text space-fill="true" space-expand="true"><label>""</label></text>
-                  <spinbutton range-min="32" range-max="1024" range-step="1" range-value="'${ICON_PLACE_START_GAP}'">
-                    <variable>NEWICON_PLACE_START_GAP</variable>
-                  </spinbutton>
-                </hbox>
+                <frame '$(gettext 'Margins')'>
+                  <hbox>
+                    <vbox>
+                      <hbox>
+                        <text space-fill="true" space-expand="true"><label>""</label></text>
+                        <text xalign="0"><label>'$(gettext 'Top: ')'</label></text>
+                        <spinbutton range-min="7" range-max="96" range-step="1" range-value="'${ROX_MARGIN_TOP}'">
+                          <variable>NEWROX_MARGIN_TOP</variable>
+                        </spinbutton>
+                      </hbox>
+                      <hbox>
+                        <text space-fill="true" space-expand="true"><label>""</label></text>
+                        <text xalign="0"><label>'$(gettext 'Left: ')'</label></text>
+                        <spinbutton range-min="7" range-max="96" range-step="1" range-value="'${ROX_MARGIN_LEFT}'">
+                          <variable>NEWROX_MARGIN_LEFT</variable>
+                        </spinbutton>
+                      </hbox>
+                    </vbox>
+                    <vbox>
+                      <hbox>
+                        <text space-fill="true" space-expand="true"><label>""</label></text>
+                        <text xalign="0"><label>'$(gettext 'Bottom: ')'</label></text>
+                        <spinbutton range-min="7" range-max="96" range-step="1" range-value="'${ROX_MARGIN_BOTTOM}'">
+                          <variable>NEWROX_MARGIN_BOTTOM</variable>
+                        </spinbutton>
+                      </hbox>
+                      <hbox>
+                        <text space-fill="true" space-expand="true"><label>""</label></text>
+                        <text xalign="0"><label>'$(gettext 'Right: ')'</label></text>
+                        <spinbutton range-min="7" range-max="96" range-step="1" range-value="'${ROX_MARGIN_RIGHT}'">
+                          <variable>NEWROX_MARGIN_RIGHT</variable>
+                        </spinbutton>
+                      </hbox>
+                    </vbox>
+                  </hbox>
+                </frame>
                 <hbox>
                   <text xalign="0"><label>'$(gettext 'Edge gap: ')'</label></text>
                   <text space-fill="true" space-expand="true"><label>""</label></text>
@@ -167,8 +228,13 @@ else
                 <hbox>
                   <text xalign="0"><label>'$(gettext 'Spacing: ')'</label></text>
                   <text space-fill="true" space-expand="true"><label>""</label></text>
-                  <spinbutton range-min="48" range-max="256" range-step="1" range-value="'${ICON_PLACE_SPACING}'">
-                    <variable>NEWICON_PLACE_SPACING</variable>
+                  <text xalign="0"><label>X:</label></text>
+                  <spinbutton range-min="48" range-max="256" range-step="1" range-value="'${ICON_PLACE_SPACING_X}'">
+                    <variable>NEWICON_PLACE_SPACING_X</variable>
+                  </spinbutton>
+                  <text xalign="0"><label>Y:</label></text>
+                  <spinbutton range-min="48" range-max="256" range-step="1" range-value="'${ICON_PLACE_SPACING_Y}'">
+                    <variable>NEWICON_PLACE_SPACING_Y</variable>
                   </spinbutton>
                 </hbox>
               </vbox>     
@@ -183,8 +249,12 @@ else
 <action signal="show" condition="command_is_true([[ '${ICONPARTITIONS}' != true ]] && echo true)">disable:NEWLABELPARTITIONS</action>
 <action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWICON_PLACE_ORIENTATION</action>
 <action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWICON_PLACE_EDGE_GAP</action>
-<action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWICON_PLACE_START_GAP</action>
-<action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWICON_PLACE_SPACING</action>
+<action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWROX_MARGIN_TOP</action>
+<action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWROX_MARGIN_BOTTOM</action>
+<action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWROX_MARGIN_LEFT</action>
+<action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWROX_MARGIN_RIGHT</action>
+<action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWICON_PLACE_SPACING_X</action>
+<action signal="show" condition="command_is_true([[ '${ICONDESK}' != true ]] && echo true)">disable:NEWICON_PLACE_SPACING_Y</action>
 <action signal="show" condition="command_is_true([ '${RAMSAVEINTERVAL}' -ne 0 ] && echo true )">hide:VARASK</action>'
 fi
 
@@ -361,15 +431,41 @@ if [ "$ROX_DESKTOP" ] ; then
 	set_em_item LABELPARTITIONS ${NEWLABELPARTITIONS}
 	set_em_item ICON_PLACE_ORIENTATION ${NEWICON_PLACE_ORIENTATION}
 	set_em_item ICON_PLACE_EDGE_GAP ${NEWICON_PLACE_EDGE_GAP}
-	set_em_item ICON_PLACE_START_GAP ${NEWICON_PLACE_START_GAP}
-	set_em_item ICON_PLACE_SPACING ${NEWICON_PLACE_SPACING}
 	#--
 	[ "$NEWHOTPLUGON" != "$HOTPLUGON" ] && changed+=" HOTPLUGON" && CLEAN_ROX_DESK_ICONS=yes
 	[ "$NEWBACKENDON" != "$BACKENDON" ] && changed+=" BACKENDON" && CLEAN_ROX_DESK_ICONS=yes
 	[ "$NEWICON_PLACE_ORIENTATION" != "$ICON_PLACE_ORIENTATION" ] && changed+=" ICON_PLACE_ORIENTATION" && CLEAN_ROX_DESK_ICONS=yes
 	[ "$NEWICON_PLACE_EDGE_GAP" != "$ICON_PLACE_EDGE_GAP" ] && changed+=" ICON_PLACE_EDGE_GAP" && CLEAN_ROX_DESK_ICONS=yes
-	[ "$NEWICON_PLACE_START_GAP" != "$ICON_PLACE_START_GAP" ] && changed+=" ICON_PLACE_START_GAP" && CLEAN_ROX_DESK_ICONS=yes
-	[ "$NEWICON_PLACE_SPACING" != "$ICON_PLACE_SPACING" ] && changed+=" ICON_PLACE_SPACING" && CLEAN_ROX_DESK_ICONS=yes
+	if [ "$NEWROX_MARGIN_TOP" != "$ROX_MARGIN_TOP" ]; then
+		changed+=" ROX_MARGIN_TOP"
+		CLEAN_ROX_DESK_ICONS=yes
+		rox_set_option pinboard_top_margin "$NEWROX_MARGIN_TOP"
+	fi
+	if [ "$NEWROX_MARGIN_BOTTOM" != "$ROX_MARGIN_BOTTOM" ]; then
+		changed+=" ROX_MARGIN_BOTTOM"
+		CLEAN_ROX_DESK_ICONS=yes
+		rox_set_option pinboard_bottom_margin "$NEWROX_MARGIN_BOTTOM"
+	fi
+	if [ "$NEWROX_MARGIN_LEFT" != "$ROX_MARGIN_LEFT" ]; then
+		changed+=" ROX_MARGIN_LEFT"
+		CLEAN_ROX_DESK_ICONS=yes
+		rox_set_option pinboard_left_margin "$NEWROX_MARGIN_LEFT"
+	fi
+	if [ "$NEWROX_MARGIN_RIGHT" != "$ROX_MARGIN_RIGHT" ]; then
+		changed+=" ROX_MARGIN_RIGHT"
+		CLEAN_ROX_DESK_ICONS=yes
+		rox_set_option pinboard_right_margin "$NEWROX_MARGIN_RIGHT"
+	fi
+	if [ "$NEWICON_PLACE_SPACING_X" != "$ICON_PLACE_SPACING_X" ]; then
+		changed+=" ICON_PLACE_SPACING_X"
+		CLEAN_ROX_DESK_ICONS=yes
+		rox_set_option pinboard_search_step_x "$NEWICON_PLACE_SPACING_X"
+	fi
+	if [ "$NEWICON_PLACE_SPACING_Y" != "$ICON_PLACE_SPACING_Y" ]; then
+		changed+=" ICON_PLACE_SPACING_Y"
+		CLEAN_ROX_DESK_ICONS=yes
+		rox_set_option pinboard_search_step_y "$NEWICON_PLACE_SPACING_Y"
+	fi
 	[ "$NEWICONDESK" != "$ICONDESK" ] && changed+=" ICONDESK" && CLEAN_ROX_DESK_ICONS=yes
 	[ "$NEWICONPARTITIONS" != "$ICONPARTITIONS" ] && changed+=" ICONPARTITIONS" && CLEAN_ROX_DESK_ICONS=yes
 	[ "$NEWLABELPARTITIONS" != "$LABELPARTITIONS" ] && changed+=" LABELPARTITIONS" && CLEAN_ROX_DESK_ICONS=yes

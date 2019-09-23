@@ -135,10 +135,34 @@ rox_create_appinfo_func() { #needs INFO, DRV_CATEGORY, MOREITEMS, ONEDRVNAME
 </AppInfo>" > /tmp/pup_event_frontend/drive_${ONEDRVNAME}/AppInfo.xml
 }
 
-rox_free_coord() {
-	#find a free place on desktop. v410 avoid exact overlapping icons...
-	#091208 finetune placement, also any side of screen...
-	#read the coords grid, code from shinobar...
+rox_get_option() {
+	echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <GetOption>
+   <Name>${1}</Name>
+  </GetOption>
+ </env:Body>
+</env:Envelope>" | roxfiler_R \
+		| grep -o '<soap:result>.*</soap:result>' \
+		| sed -e 's%<soap:result>%%g' \
+		| sed -e 's%</soap:result>%%g'
+}
+
+rox_set_option() {
+	echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <SetOption>
+   <Name>${1}</Name>
+   <Value>${2}</Value>
+  </SetOption>
+ </env:Body>
+</env:Envelope>" | roxfiler_R
+}
+
+rox_calc_coord() {
+	#ICON_PLACE_EDGE_GAP defaults to 64, see /etc/eventmanager
 	if [ -z "$SCRN_X" -o -z "$SCRN_Y" ] ; then
 		while read a b c ; do
 			case $a in -geometry)
@@ -151,100 +175,41 @@ rox_free_coord() {
 		done <<< "$(LANG=C xwininfo -root)"
 	fi
 	#echo $SCRN_X $SCRN_Y #DEBUG
-	COORDSGRID="`grep -o ' x="[0-9]*" y="[0-9]*" ' /root/Choices/ROX-Filer/PuppyPin | sed 's/[0-9]"/"/g'`"
-	PIN_GRID_STEP=`grep "pinboard_grid_step" /root/.config/rox.sourceforge.net/ROX-Filer/Options | sed -e "s/ *<[^>]*>//g"`
-	[ ! $PIN_GRID_STEP ] && PIN_GRID_STEP=16 #16=medium.
-	[ $PIN_GRID_STEP -eq 0 ] && PIN_GRID_STEP=16 #precaution.
-	PIN_GRID_STEP2=$(($PIN_GRID_STEP / 2))
-	MAX_X=$(( $SCRN_X - 96 ))
-	MAX_Y=$(( $SCRN_Y - 96 ))
-	#echo "MAX_X: $MAX_X MAX_Y: $MAX_Y" #DEBUG
+
 	case $ICON_PLACE_ORIENTATION in #see /etc/eventmanager
-	bottom)
-		COORD_Y=$(( $SCRN_Y - $ICON_PLACE_EDGE_GAP )) #default 64, see /etc/eventmanager
-		COORD_Y=$(( ( $COORD_Y + $PIN_GRID_STEP2 ) / $PIN_GRID_STEP * $PIN_GRID_STEP ))
-		COORD_X=$ICON_PLACE_START_GAP #default 32, see /etc/eventmanager
-		COORD_X=$(( ( $COORD_X + $PIN_GRID_STEP2 ) / $PIN_GRID_STEP *  $PIN_GRID_STEP )) #130613
-		xPATTERN=" x=\"${COORD_X}\" y=\"${COORD_Y}\" | x=\"$((COORD_X + 1))\" y=\"$((COORD_Y + 1))\" "
-		#echo "$xPATTERN" #DEBUG
-		xyCNT=0 #precaution.
-		while [ 1 ];do
-			xgPATTERN="${xPATTERN//[0-9]\"/\"}" #="`echo -n "$xPATTERN" | sed 's/[0-9]"/"/g'`"
-			#echo "* $xgPATTERN" #DEBUG
-			[ "`echo "$COORDSGRID" | grep -E "$xgPATTERN"`" = "" ] && break
-			COORD_X=$(( $COORD_X + $ICON_PLACE_SPACING ))
-			if [ $COORD_X -gt $MAX_X ];then #start next line up.
-				xyCNT=$(( $xyCNT + 1 ))
-				[ $xyCNT -gt 1 ] && break
-				COORD_Y=$(( $COORD_Y - $ICON_PLACE_SPACING ))
-				COORD_X=$ICON_PLACE_START_GAP
-			fi
-			xPATTERN=" x=\"${COORD_X}\" y=\"${COORD_Y}\" | x=\"$((COORD_X + 1))\" y=\"$((COORD_Y + 1))\" "
-			#echo "$xPATTERN" #DEBUG
-		done
-	;;
-	top)
-		COORD_Y=$ICON_PLACE_EDGE_GAP
-		COORD_Y=$(( ( $COORD_Y + $PIN_GRID_STEP2 ) / $PIN_GRID_STEP * $PIN_GRID_STEP ))
-		COORD_X=$ICON_PLACE_START_GAP #default 32, see /etc/eventmanager
-		COORD_X=$(( ( $COORD_X + $PIN_GRID_STEP2 ) / $PIN_GRID_STEP * $PIN_GRID_STEP )) #130613
-		xPATTERN=" x=\"${COORD_X}\" y=\"${COORD_Y}\" | x=\"$((COORD_X + 1))\" y=\"$((COORD_Y + 1))\" "
-		xyCNT=0 #precaution.
-		while [ 1 ];do
-			xgPATTERN="${xPATTERN//[0-9]\"/\"}" #="`echo -n "$xPATTERN" | sed 's/[0-9]"/"/g'`"
-			[ "`echo "$COORDSGRID" | grep -E "$xgPATTERN"`" = "" ] && break
-			COORD_X=$(( $COORD_X + $ICON_PLACE_SPACING ))
-			if [ $COORD_X -gt $MAX_X ];then #start next line down.
-				xyCNT=$(( $xyCNT + 1 ))
-				[ $xyCNT -gt 1 ] && break
-				COORD_Y=$(( $COORD_Y + $ICON_PLACE_SPACING ))
-				COORD_X=$ICON_PLACE_START_GAP
-			fi
-			xPATTERN=" x=\"${COORD_X}\" y=\"${COORD_Y}\" | x=\"$((COORD_X + 1))\" y=\"$((COORD_Y + 1))\" "
-		done
-	;;
-	left)
-		COORD_X=$ICON_PLACE_EDGE_GAP #default 64, see /etc/eventmanager
-		COORD_X=$(( ( $COORD_X + $PIN_GRID_STEP2 ) / $PIN_GRID_STEP * $PIN_GRID_STEP )) #130613
-		COORD_Y=$ICON_PLACE_START_GAP #default 32, see /etc/eventmanager
-		COORD_Y=$(( ( $COORD_Y + $PIN_GRID_STEP2 ) / $PIN_GRID_STEP *  $PIN_GRID_STEP ))
-		xPATTERN=" x=\"${COORD_X}\" y=\"${COORD_Y}\" | x=\"$((COORD_X + 1))\" y=\"$((COORD_Y + 1))\" "
-		xyCNT=0 #precaution.
-		while [ 1 ];do
-			xgPATTERN="${xPATTERN//[0-9]\"/\"}" #="`echo -n "$xPATTERN" | sed 's/[0-9]"/"/g'`"
-			[ "`echo "$COORDSGRID" | grep -E "$xgPATTERN"`" = "" ] && break
-			COORD_Y=$(( $COORD_Y + $ICON_PLACE_SPACING ))
-			if [ $COORD_Y -gt $MAX_Y ];then #start next row.
-				xyCNT=$(( $xyCNT + 1 ))
-				[ $xyCNT -gt 1 ] && break
-				COORD_X=$(( $COORD_X + $ICON_PLACE_SPACING ))
-				COORD_Y=$ICON_PLACE_START_GAP
-			fi
-			xPATTERN=" x=\"${COORD_X}\" y=\"${COORD_Y}\" | x=\"$((COORD_X + 1))\" y=\"$((COORD_Y + 1))\" "
-		done
-	;;
-	right)
-		COORD_X=$(( $SCRN_X - $ICON_PLACE_EDGE_GAP )) #default 64, see /etc/eventmanager
-		COORD_X=$(( ( $COORD_X + $PIN_GRID_STEP2 ) / $PIN_GRID_STEP * $PIN_GRID_STEP )) #130613
-		COORD_Y=$ICON_PLACE_START_GAP #default 32, see /etc/eventmanager
-		COORD_Y=$(( ( $COORD_Y + $PIN_GRID_STEP2 ) / $PIN_GRID_STEP * $PIN_GRID_STEP ))
-		xPATTERN=" x=\"${COORD_X}\" y=\"${COORD_Y}\" | x=\"$((COORD_X + 1))\" y=\"$((COORD_Y + 1))\" "
-		xyCNT=0 #precaution.
-		while [ 1 ];do
-			xgPATTERN="${xPATTERN//[0-9]\"/\"}" #="`echo -n "$xPATTERN" | sed 's/[0-9]"/"/g'`"
-			[ "`echo "$COORDSGRID" | grep -E "$xgPATTERN"`" = "" ] && break
-			COORD_Y=$(( $COORD_Y + $ICON_PLACE_SPACING ))
-			if [ $COORD_Y -gt $MAX_Y ];then #start next row back.
-				xyCNT=$(( $xyCNT + 1 ))
-				[ $xyCNT -gt 1 ] && break
-				COORD_X=$(( $COORD_X - $ICON_PLACE_SPACING ))
-				COORD_Y=$ICON_PLACE_START_GAP
-			fi
-			xPATTERN=" x=\"${COORD_X}\" y=\"${COORD_Y}\" | x=\"$((COORD_X + 1))\" y=\"$((COORD_Y + 1))\" "
-		done
-	;;
+		bottom|bottom-left)
+			COORD_X=-7
+			COORD_Y=$(( $SCRN_Y - $ICON_PLACE_EDGE_GAP ))
+			;;
+		bottom-right)
+			COORD_X=-8
+			COORD_Y=$(( $SCRN_Y - $ICON_PLACE_EDGE_GAP ))
+			;;
+		top|top-left)
+			COORD_X=-5
+			COORD_Y=$ICON_PLACE_EDGE_GAP
+			;;
+		top-right)
+			COORD_X=-6
+			COORD_Y=$ICON_PLACE_EDGE_GAP
+			;;
+		left|left-top)
+			COORD_X=$ICON_PLACE_EDGE_GAP
+			COORD_Y=-5
+			;;
+		left-bottom)
+			COORD_X=$ICON_PLACE_EDGE_GAP
+			COORD_Y=-7
+			;;
+		right|right-top)
+			COORD_X=$(( $SCRN_X - $ICON_PLACE_EDGE_GAP ))
+			COORD_Y=-6
+			;;
+		right-bottom)
+			COORD_X=$(( $SCRN_X - $ICON_PLACE_EDGE_GAP ))
+			COORD_Y=-8
+			;;
 	esac
-	#echo "$ICON_PLACE_ORIENTATION : $COORD_X $COORD_Y" #DEBUG
 }
 
 rox_add_pinboard_func() { #needs ONEDRVNAME, DRV_CATEGORY, FSTYPE
@@ -252,7 +217,7 @@ rox_add_pinboard_func() { #needs ONEDRVNAME, DRV_CATEGORY, FSTYPE
 	#v411 rerwin: avoid icon getting duplicated if it is renamed...
 	ppPATTERN="/tmp/pup_event_frontend/drive_${ONEDRVNAME}<"
 	grep -q "$ppPATTERN" /root/Choices/ROX-Filer/PuppyPin && return #precaution.
-	rox_free_coord
+	rox_calc_coord
 	#120503 the label "mmcblk0p1" (SD memory cards via mmc interface) is too long...
 	cutONEDRVNAME=${ONEDRVNAME//cblk/} #mmcblk0p1 -> mm0p1
 	if [ "$LABELPARTITIONS" = "true" ] ; then
