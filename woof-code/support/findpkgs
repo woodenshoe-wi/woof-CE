@@ -25,6 +25,9 @@
 
 export LANG=C #faster.
 
+newline='
+'
+
 ## DS_DATE and DPS_MODIFY_DATE are md5 checksums
 ## when these are different it means an update has to happen
 
@@ -259,8 +262,14 @@ search_func() {
 	do
 		#APARTNAME could have glob wildcard(s)...
 		case "$APARTNAME" in
-			*\*) BEGIN_WITH="|" ;; #if has '*' on end, then look in full pkg name.
-			*)   BEGIN_WITH="^" ;;
+			*\*) #if has '*' on end, then look in full pkg name.
+				BEGIN_WITH="|"
+				has_glob="yes"
+				;;
+			*)
+				BEGIN_WITH="^"
+				has_glob=""
+				;;
 		esac
 		namePTN="${APARTNAME//-/\\-}"      #replace "-" with "\-"
 		namePTN="${namePTN//\*/.*}"        #replace "*" with ".*"
@@ -293,13 +302,14 @@ search_func() {
 				fi
 			fi
 			if [ "$FNDSPECS" ];then
-				xFNDSPECS=$(
+				[ "$xFNDSPECS" ] && xFNDSPECS=${xFNDSPECS}${newline}
+				xFNDSPECS=${xFNDSPECS}$(
 				for ONESPEC in $FNDSPECS ; do #maybe more than one find.
 					#ex: abiword|2.3.4|abiword-2.3.4.pet|+gtk+|puppy|wary5|Packages-puppy-wary5-official
 					echo "${ONESPEC}${PKGLIST}"
 					#echo "${ONESPEC}|${PKGLIST}"
 				done)
-				break #pkg(s) found.
+				[ ! "$has_glob" ] && break #pkg(s) found.
 			fi
 		done
 
